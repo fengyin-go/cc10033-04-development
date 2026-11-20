@@ -73,10 +73,36 @@
     <div v-if="showCreate" class="modal-backdrop" data-testid="create-modal">
       <form class="modal" @submit.prevent="submitCreate">
         <h3>登记{{ meta.entity }}</h3>
-        <label v-for="field in meta.fields" :key="field" class="create-field">
+        <label v-for="field in createFields" :key="field" class="create-field">
           <span>{{ field }}</span>
-          <input v-model="createValues[field]" :data-testid="`create-${field}`" required />
+          <input v-model="createValues[field]" :data-testid="`create-${field}`" :required="isRequired(field)" />
         </label>
+        <template v-if="meta.key === 'slow_change_log'">
+          <label class="create-field">
+            <span>业务日期</span>
+            <input v-model="createValues['业务日期']" data-testid="create-业务日期" type="date" required />
+          </label>
+          <label class="create-field">
+            <span>记录来源</span>
+            <select v-model="createValues['记录来源']" data-testid="create-记录来源">
+              <option value="首发发布">首发发布</option>
+              <option value="迟到补录">迟到补录</option>
+              <option value="更正补录">更正补录</option>
+            </select>
+          </label>
+          <label class="create-field">
+            <span>更正来源</span>
+            <input v-model="createValues['更正来源']" data-testid="create-更正来源" placeholder="被更正的履历ID，可留空" />
+          </label>
+          <label class="create-field">
+            <span>登记人</span>
+            <select v-model="createValues['登记人']" data-testid="create-登记人">
+              <option value="data_steward">数据治理员</option>
+              <option value="dim_owner">维度维护人</option>
+              <option value="publisher">发布值班</option>
+            </select>
+          </label>
+        </template>
         <div class="page-actions">
           <button class="btn" type="button" @click="showCreate = false">取消</button>
           <button class="btn primary" data-testid="submit-create" type="submit" :disabled="creating">
@@ -90,6 +116,8 @@
       <span>共 {{ total }} 条{{ meta.name }}记录</span>
       <span v-if="errorMessage" class="error-text">{{ errorMessage }}</span>
     </footer>
+
+    <ScdHistoryPanel v-if="showLedger" :initial-dimension="ledgerDimension" />
   </section>
 </template>
 
@@ -104,9 +132,16 @@ import {
   runAction as applyAction,
 } from '@/api/backend-service'
 import type { EntryRow } from '@/data/types'
+import ScdHistoryPanel from '@/views/ScdHistoryPanel.vue'
 
 const props = defineProps<{ moduleKey: string }>()
 const meta = moduleMeta(props.moduleKey)
+// 变更日志与 SCD 策略是履历的主要入口；维度定义/属性也提供追溯面板。
+const LEDGER_MODULES = new Set(['slow_change_log', 'scd_handler', 'dim_definition', 'dim_attr'])
+const showLedger = LEDGER_MODULES.has(props.moduleKey)
+const ledgerDimension = props.moduleKey === 'dim_definition' || props.moduleKey === 'dim_attr'
+  ? 'DIM_PRODUCT'
+  : undefined
 const rows = ref<EntryRow[]>([])
 const total = ref(0)
 const errorMessage = ref('')
@@ -115,6 +150,15 @@ const filterFields = meta.fields.slice(0, 3)
 const showCreate = ref(false)
 const creating = ref(false)
 const createValues = ref<Record<string, string>>({})
+// 变更日志的变更ID由履历台账生成，页面不再要求手填。
+const createFields = meta.key === 'slow_change_log'
+  ? meta.fields.filter((field) => field !== '变更ID')
+  : meta.fields
+const OPTIONAL_CREATE_FIELDS = new Set(['变更ID', '旧值', '变更原因'])
+
+function isRequired(field: string): boolean {
+  return !OPTIONAL_CREATE_FIELDS.has(field)
+}
 const stats = computed(() => [
   { label: meta.metrics[0], value: total.value },
   { label: meta.metrics[1], value: rows.value.filter((row) => row.status === meta.statuses[1]).length },
@@ -145,7 +189,13 @@ async function exportRows() {
 }
 
 function openCreate() {
-  createValues.value = Object.fromEntries(meta.fields.map((field) => [field, '']))
+  createValues.value = Object.fromEntries(
+    [...meta.fields, '业务日期', '记录来源', '更正来源', '登记人'].map((field) => [field, '']),
+  )
+  if (meta.key === 'slow_change_log') {
+    createValues.value['登记人'] = 'data_steward'
+    createValues.value['记录来源'] = '首发发布'
+  }
   errorMessage.value = ''
   showCreate.value = true
 }

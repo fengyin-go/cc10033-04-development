@@ -70,3 +70,25 @@ body { margin: 0; background: #f6f8fb; color: #1f2937; }
 .analysis-chart { display: flex; align-items: flex-end; gap: 8px; height: 160px; padding: 12px 0; }
 .analysis-bar { flex: 1; border-radius: 4px 4px 0 0; background: var(--brand); min-width: 24px; position: relative; transition: height 0.4s; }
 .analysis-bar span { position: absolute; bottom: -20px; left: 50%; transform: translateX(-50%); font-size: 10px; color: var(--muted); white-space: nowrap; }
+/* SCD 变更履历 */
+.ledger { margin-top: 20px; border-top: 2px solid var(--border); padding-top: 12px; }
+.ledger-head { display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px; }
+.ledger-head h3 { margin: 0; font-size: 16px; }
+.ledger-hint { color: var(--muted); font-size: 12px; margin: 4px 0 0; max-width: 640px; }
+.ledger-controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; margin: 8px 0; }
+.ledger-label { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: var(--muted); }
+.ledger-label input, .ledger-label select { border: 1px solid var(--border); border-radius: 6px; padding: 6px 8px; font-size: 13px; min-width: 130px; }
+.ledger-label.ledger-wide { flex: 1; min-width: 220px; }
+.ledger-revision { font-size: 12px; color: var(--muted); align-self: center; }
+.ledger-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.ledger-card { background: #fff; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 12px; }
+.ledger-card h4 { margin: 0 0 8px; font-size: 14px; }
+.ledger-table th, .ledger-table td { font-size: 12px; padding: 6px 8px; }
+.ledger-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.ledger-message { color: #067647; font-size: 13px; }
+.ledger-hash { margin-left: 8px; color: var(--muted); }
+.ledger-issues { color: #b42318; font-size: 12px; margin: 6px 0 0; padding-left: 18px; }
+.correction-chip { display: inline-block; background: #fef3c7; color: #92400e; border-radius: 4px; padding: 1px 6px; margin: 1px 4px 1px 0; font-size: 11px; }
+.ok-text { color: #067647; font-size: 13px; }
+.asof-summary { font-size: 13px; margin: 0 0 8px; }
+@media (max-width: 1100px) { .ledger-grid { grid-template-columns: 1fr; } }

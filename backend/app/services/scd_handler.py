@@ -210,7 +210,7 @@ def _simulate_scd_processing(entry: dict[str, Any]) -> dict[str, Any]:
 
 
 def _log_scd_activation(dim_code: str, scd_type: str, strategy_name: str) -> None:
-    """记录SCD策略启用日志到slow_change_log。"""
+    """记录SCD策略启用日志到slow_change_log（系统日志，不进属性履历）。"""
     log_entry = {
         "id": len(store.rows("slow_change_log")) + 1,
         "status": "已记录",
@@ -223,5 +223,6 @@ def _log_scd_activation(dim_code: str, scd_type: str, strategy_name: str) -> Non
         "新值": strategy_name,
         "变更时间": datetime.now(timezone.utc).strftime("%Y-%m-%d"),
         "变更原因": f"SCD策略启用: {scd_type}",
+        "是否只读": True,
     }
     store.insert("slow_change_log", log_entry)

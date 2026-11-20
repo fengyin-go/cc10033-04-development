@@ -5,11 +5,13 @@
 """
 from __future__ import annotations
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services.scd_history import HistoryError
 from app.store import store
 
 app = FastAPI(title="维度建模开发中心", version="1.0.0")
@@ -21,6 +23,16 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+@app.exception_handler(HistoryError)
+async def history_error_handler(request: Request, exc: HistoryError) -> JSONResponse:
+    """履历领域错误统一转成带原因的 HTTP 响应，权限/冲突/校验各自保留状态码。"""
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": {"message": exc.message, **exc.details}},
+    )
+
 
 @app.get("/api/health")
 def health() -> dict[str, object]:

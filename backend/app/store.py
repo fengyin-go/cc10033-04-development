@@ -317,6 +317,9 @@ class ArtifactRegistry:
 
 
 class Store:
+    # 履历台账等内部表不参与业务模块清单和概览统计。
+    INTERNAL_TABLES = {"scd_history", "scd_effective_interval", "scd_history_meta"}
+
     def __init__(self) -> None:
         self._tables: dict[str, list[dict[str, Any]]] = {
             name: [dict(row) for row in rows] for name, rows in SEED_ROWS.items()
@@ -327,7 +330,10 @@ class Store:
         self.artifacts = ArtifactRegistry()
 
     def module_names(self) -> list[str]:
-        return sorted(self._tables)
+        return sorted(name for name in self._tables if name not in self.INTERNAL_TABLES)
+
+    def internal_tables(self) -> list[str]:
+        return sorted(name for name in self._tables if name in self.INTERNAL_TABLES)
 
     def rows(self, module: str) -> list[dict[str, Any]]:
         return self._tables.setdefault(module, [])
@@ -361,9 +367,20 @@ class Store:
         recovery = self.recovery.recovery_summary()
         snapshot_info = self.snapshot.snapshot_summary()
         artifact_info = self.artifacts.artifact_summary()
+        history_rows = self.rows("scd_history")
+        interval_rows = self.rows("scd_effective_interval")
         return {
             "cards": cards,
             "modules": modules,
+            "scd_history": {
+                "history": len(history_rows),
+                "corrections": sum(
+                    1 for row in history_rows
+                    if str(row.get("记录来源", "")) in {"迟到补录", "更正补录"}
+                ),
+                "intervals": len(interval_rows),
+                "dimensions": len(self.rows("scd_history_meta")),
+            },
             "data_channels": {"topics": len(channel_stats), "stats": channel_stats},
             "recovery": recovery,
             "snapshots": snapshot_info,

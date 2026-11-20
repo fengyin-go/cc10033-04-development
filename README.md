@@ -79,5 +79,37 @@ npm run dev
 - 列表接口统一返回 `{ items, total, page, size }`，动作接口统一返回 `{ ok, message }`。
 - 状态流转只允许在 `app/services` 里改，路由层不做业务判断。
 
+## SCD 变更履历与生效区间
+
+`scd_history` 是只追加的履历台账，`scd_effective_interval` 是按 SCD 策略和履历
+推导出的生效区间投影，`scd_history_meta` 记录每个维度的履历版本（用于并发校验）。
+三者都是内部表，不出现在业务模块列表里。
+
+| 接口 | 说明 |
+| --- | --- |
+| `GET /api/scd-history/dimensions` | 各维度履历 / 区间概况 |
+| `GET /api/scd-history/roles` | 维护人角色与更正权限 |
+| `GET /api/scd-history/{dim}/history` | 只读履历（返回 `revision`） |
+| `POST /api/scd-history/{dim}/history` | 登记 / 补录履历，原子重算区间 |
+| `GET /api/scd-history/{dim}/intervals` | 生效区间投影 |
+| `GET /api/scd-history/{dim}/as-of?date=` | 追溯某天：取值、来源履历、关联更正 |
+| `GET /api/scd-history/{dim}/integrity` | 区间重叠、投影漂移、只读原值校验 |
+| `POST /api/scd-history/{dim}/repair` | 按履历重算并整体替换投影 |
+
+要点：
+
+- **只读原值**：首发发布的旧值 / 新值 / 业务日期写入后不可修改，补录和更正都是新增履历。
+- **区间推导**：SCD2/3/6 按业务日期切分区间，SCD1 只保留最新值，SCD0 拒绝变更。
+- **同日更正**：同一天只保留一个生效版本，后登记者胜出，原记录标记「已被同日更正」。
+- **迟到补录**：补录日期早于已发布版本时，原区间结束日期被截短，来源履历不变。
+- **并发更正**：`期望版本` 与当前 `revision` 不一致时返回 409，不会落半套数据；
+  校验失败会同时回滚履历、镜像日志和投影。
+- **权限**：`data_steward` / `dim_owner` 可发布和更正，`publisher` 只能发布，
+  `viewer` 只读。
+
+变更日志模块（`slow_change_log`）的登记会自动写入履历并生成镜像日志，
+「追溯变更」动作返回当日归属、生效区间和修订来源。工作台的变更日志、SCD 处理、
+维度定义、维度属性页面下方都带有履历面板。
+
 领域：数据工程
 子方向：数仓与数据湖
